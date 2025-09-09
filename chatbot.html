@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iron Lady Leadership Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: #A3A3A3;
+            border-radius: 3px;
+        }
+        .chat-container::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+        .modal-backdrop {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center min-h-screen">
+
+    <!-- API Key Modal -->
+    <div id="api-key-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm modal-backdrop hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 modal-content transform scale-95 opacity-0">
+            <h2 class="text-2xl font-bold text-gray-900 text-center">First-Time Setup</h2>
+            <p class="text-center text-gray-600 mt-2">Please enter your Gemini API key to activate the chatbot.</p>
+            <div class="mt-6">
+                <label for="api-key-input" class="block text-sm font-medium text-gray-700">Gemini API Key</label>
+                <input type="password" id="api-key-input" class="mt-1 block w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Enter your key here">
+                <a href="https://aistudio.google.com/" target="_blank" class="text-sm text-indigo-600 hover:underline mt-2 inline-block">Don't have a key? Get one here.</a>
+            </div>
+            <div class="mt-6">
+                <button id="save-api-key-btn" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">Save & Start Chatting</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-2xl flex flex-col h-[90vh] my-4 border border-gray-200/50">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-purple-700 to-indigo-700 p-6 rounded-t-2xl">
+            <h1 class="text-3xl font-bold text-white text-center">Iron Lady Leadership Chatbot</h1>
+            <p class="text-indigo-200 text-center mt-1 text-sm">Your guide to our leadership programs</p>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chat-window" class="flex-1 p-6 overflow-y-auto chat-container space-y-5">
+            <!-- Bot Welcome Message -->
+            <div class="flex items-start gap-3">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='12' fill='%238B5CF6'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' dominant-baseline='middle' font-family='Inter, sans-serif' font-size='11' font-weight='bold' fill='white'%3EIL%3C/text%3E%3C/svg%3E" alt="Iron Lady Bot Avatar" class="rounded-full h-10 w-10">
+                <div class="bg-gray-100 p-4 rounded-xl rounded-tl-none max-w-md">
+                    <p class="text-gray-800 text-base leading-relaxed">Hello! I'm the Iron Lady assistant. Ready to develop an unapologetic winning mindset? How can I help you today?</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predefined Questions -->
+        <div id="faq-section" class="p-4 border-t border-gray-200/80">
+             <p class="text-sm text-gray-500 mb-2 text-center">Or try one of these common questions:</p>
+            <div id="faq-buttons" class="flex flex-wrap justify-center gap-2">
+                 <!-- Buttons will be dynamically generated here -->
+                 <button id="analyze-style-btn" class="bg-indigo-100 border border-indigo-300 hover:bg-indigo-200 text-indigo-800 text-sm font-medium py-2 px-4 rounded-full transition-colors duration-200">✨ Analyze My Leadership Style</button>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="p-6 bg-white rounded-b-2xl border-t border-gray-200/80">
+            <div class="flex items-center gap-4">
+                <input type="text" id="user-input" placeholder="Type your message..." class="flex-1 w-full px-4 py-3 bg-gray-100 border border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                <button id="send-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Key Modal Elements
+        const apiKeyModal = document.getElementById('api-key-modal');
+        const modalContent = apiKeyModal.querySelector('.modal-content');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+        
+        // Chat Elements
+        const chatWindow = document.getElementById('chat-window');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const faqButtonsContainer = document.getElementById('faq-buttons');
+        const faqSection = document.getElementById('faq-section');
+        const analyzeStyleBtn = document.getElementById('analyze-style-btn');
+
+        let isAnalyzingStyle = false; // State to track if we are in analysis mode
+        let apiKey = '';
+
+        const faqs = {
+            "What programs does Iron Lady offer?": "We offer several powerful programs to build leaders. Our main programs are the **Leadership Essentials Program**, the **100 Board Members Program**, and the **Master of Business Warfare** program. Each is designed to give you the skills you need to succeed.",
+            "Are certificates provided?": "Yes, absolutely. Upon successful completion of any program, you will receive a certificate from Iron Lady, showing your new leadership skills.",
+            "Who is this for?": "Our programs are for ambitious women who are ready to win. This includes professionals who want to grow, entrepreneurs and business women, and women seeking a career change or restart. If you're ready to be unapologetically ambitious, you're in the right place.",
+            "What is the program duration?": "Our programs are designed for impact. The Leadership Essentials Program is a 1-month journey, while the more intensive programs like the 100 Board Members and Master of Business Warfare are typically 3 months long.",
+            "Who are the mentors/coaches?": "Our content is created and delivered by global practitioners, entrepreneurs, and CEOs who have real-world experience. They share their personal learnings and proven strategies to help you win."
+        };
+        
+        const allFaqKeys = Object.keys(faqs);
+        const askedQuestions = new Set();
+
+        const addMessage = (message, sender) => {
+            const messageElement = document.createElement('div');
+            if (sender === 'user') {
+                messageElement.className = 'flex items-start gap-3 justify-end';
+                messageElement.innerHTML = `
+                    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-xl rounded-br-none max-w-md">
+                        <p class="text-base leading-relaxed">${message}</p>
+                    </div>
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='userGradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23A78BFA;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%234F46E5;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='24' height='24' rx='12' fill='url(%23userGradient)'/%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' fill='rgba(255,255,255,0.85)'/%3E%3C/svg%3E" alt="User Avatar" class="rounded-full h-10 w-10">
+                `;
+            } else {
+                let formattedMessage = message
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); 
+
+                const lines = formattedMessage.split('\n');
+                let htmlContent = '';
+                let listOpen = false;
+
+                lines.forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('* ')) {
+                        if (!listOpen) {
+                            htmlContent += '<ul class="list-disc list-inside space-y-1">';
+                            listOpen = true;
+                        }
+                        htmlContent += `<li>${trimmedLine.substring(2)}</li>`;
+                    } else {
+                        if (listOpen) {
+                            htmlContent += '</ul>';
+                            listOpen = false;
+                        }
+                        if (trimmedLine) {
+                            htmlContent += `<p>${line}</p>`;
+                        }
+                    }
+                });
+
+                if (listOpen) {
+                    htmlContent += '</ul>';
+                }
+
+                messageElement.className = 'flex items-start gap-3';
+                messageElement.innerHTML = `
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='12' fill='%238B5CF6'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' dominant-baseline='middle' font-family='Inter, sans-serif' font-size='11' font-weight='bold' fill='white'%3EIL%3C/text%3E%3C/svg%3E" alt="Iron Lady Bot Avatar" class="rounded-full h-10 w-10">
+                    <div class="bg-gray-100 p-4 rounded-xl rounded-tl-none max-w-md">
+                        <div class="text-gray-800 text-base leading-relaxed space-y-3">${htmlContent}</div>
+                    </div>
+                `;
+            }
+            chatWindow.appendChild(messageElement);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        };
+
+        const showTypingIndicator = () => {
+            const typingElement = document.createElement('div');
+            typingElement.id = 'typing-indicator';
+            typingElement.className = 'flex items-start gap-3';
+            typingElement.innerHTML = `
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='12' fill='%238B5CF6'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' dominant-baseline='middle' font-family='Inter, sans-serif' font-size='11' font-weight='bold' fill='white'%3EIL%3C/text%3E%3C/svg%3E" alt="Iron Lady Bot Avatar" class="rounded-full h-10 w-10">
+                <div class="bg-gray-100 p-4 rounded-xl rounded-tl-none max-w-md">
+                    <div class="flex items-center space-x-1">
+                        <span class="h-2 w-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span class="h-2 w-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span class="h-2 w-2 bg-gray-500 rounded-full animate-bounce"></span>
+                    </div>
+                </div>
+            `;
+            chatWindow.appendChild(typingElement);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        };
+        
+        const removeTypingIndicator = () => {
+            document.getElementById('typing-indicator')?.remove();
+        };
+
+        const getBotResponse = async (userMessage) => {
+            if (!apiKey) {
+                return "API key not set. Please set your key to use the AI features.";
+            }
+
+            const lowerCaseMessage = userMessage.toLowerCase().trim();
+            if (!isAnalyzingStyle) {
+                const matchedFaq = Object.keys(faqs).find(key => key.toLowerCase() === lowerCaseMessage);
+                if (faqs[matchedFaq]) {
+                    return faqs[matchedFaq];
+                }
+            }
+            
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const analyzerPrompt = `You are an expert leadership coach for Iron Lady. The user will describe a situation. Your task is to analyze their response, identify a key leadership trait they displayed, and recommend the most suitable Iron Lady program to enhance that trait. Maintain the confident and empowering Iron Lady persona.
+
+                **Analysis Steps:**
+                1. Acknowledge their situation with an empowering statement.
+                2. Identify one positive leadership trait from their story (e.g., "taking initiative," "collaborative approach," "strategic thinking").
+                3. Briefly explain why this trait is valuable.
+                4. Recommend ONE Iron Lady program from the list below that best aligns with enhancing this trait.
+                5. Explain your recommendation in one sentence.
+
+                **Program Information:**
+                - **Leadership Essentials Program**: Best for developing core skills like confident communication, handling politics, and taking initiative. Good for new leaders or those wanting to build a strong foundation.
+                - **100 Board Members Program**: Best for experienced professionals who are strategic thinkers, problem-solvers, and want to accelerate their growth to the most senior levels.
+                - **Master of Business Warfare**: Best for highly ambitious leaders, founders, or entrepreneurs who are decisive, results-driven, and aim for top executive roles.`;
+
+                const defaultPrompt = `You are the Iron Lady chatbot, an expert assistant on the Iron Lady leadership programs and organization. Your knowledge is based entirely on the 'Iron Lady Information' provided below.
+
+                **Critical Rule:** Answer questions ONLY using the information provided in the 'Iron Lady Information' section. Do not use any outside knowledge. If a question is asked that cannot be answered from this information, you MUST reply with the following sentence and nothing else: "My focus is on equipping leaders with the tactics to win in their career. How can I help you with your leadership journey?"
+
+                **Your Persona:**
+                - **Tone:** Confident, inspiring, direct. Use words like "win," "tactics," "ambitious," "success."
+                - **Address the user neutrally.** Never assume gender.
+                
+                **Iron Lady Information (Your entire knowledge base):**
+                - **Founder and CEO**: Iron Lady was founded by Rajesh Bhat.
+                - **Mission**: To enable a million women to reach the top levels of leadership.
+                - **Core Philosophy**: Iron Lady uses "Business War Tactics" to help women win without even fighting.
+                - **Community**: There is a large ecosystem of over 78,000 women leaders.
+                - **Available Programs**:
+                    * **Leadership Essentials Program**: For ambitious women ready to learn how to get ahead, pitch ideas confidently, and handle office politics.
+                    * **100 Board Members Program**: For those feeling stuck and ready to learn new ways to speed up their career growth and reach senior roles.
+                    * **Master of Business Warfare**: For women committed to reaching top executive roles.`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userMessage }] }],
+                    systemInstruction: { parts: [{ text: isAnalyzingStyle ? analyzerPrompt : defaultPrompt }] },
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status} - ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (isAnalyzingStyle) {
+                    isAnalyzingStyle = false; // Reset state after analysis
+                }
+
+                return text || "I'm sorry, I couldn't process that. Could you please ask in a different way?";
+            } catch (error) {
+                console.error("Error fetching from Gemini API:", error);
+                isAnalyzingStyle = false; // Reset state on error
+                return "I'm having a little trouble connecting right now. Please try again in a moment.";
+            }
+        };
+
+        const processMessage = async (message) => {
+            if (message === '') return;
+
+            addMessage(message, 'user');
+            
+            showTypingIndicator();
+            const botResponse = await getBotResponse(message);
+            removeTypingIndicator();
+            addMessage(botResponse, 'bot');
+        };
+
+        const handleUserInput = () => {
+            const message = userInput.value.trim();
+            userInput.value = '';
+            processMessage(message);
+        };
+        
+        const renderFaqButtons = () => {
+            const availableQuestions = allFaqKeys.filter(q => !askedQuestions.has(q));
+            
+            faqButtonsContainer.querySelectorAll('button:not(#analyze-style-btn)').forEach(btn => btn.remove());
+
+            if (availableQuestions.length === 0) {
+                 faqButtonsContainer.querySelectorAll('button:not(#analyze-style-btn)').forEach(btn => btn.style.display = 'none');
+                 const suggestionText = faqSection.querySelector('p');
+                 if(suggestionText) suggestionText.style.display = 'none';
+
+            } else {
+                 const questionsToDisplay = availableQuestions.slice(0, 3);
+                 questionsToDisplay.forEach(question => {
+                    const button = document.createElement('button');
+                    button.className = "bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm font-medium py-2 px-4 rounded-full transition-colors duration-200";
+                    button.textContent = question;
+                    faqButtonsContainer.insertBefore(button, analyzeStyleBtn);
+                });
+            }
+        };
+
+        analyzeStyleBtn.addEventListener('click', () => {
+            isAnalyzingStyle = true;
+            addMessage("Let's analyze your leadership style.", 'user');
+            const promptMessage = "Of course. Describe a recent challenge you faced at work and how you handled it. I will then analyze your approach and suggest a program to amplify your strengths.";
+            addMessage(promptMessage, 'bot');
+            faqSection.style.display = 'none'; // Hide suggestions during analysis
+        });
+
+        sendButton.addEventListener('click', handleUserInput);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleUserInput();
+            }
+        });
+
+        faqButtonsContainer.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' && e.target.id !== 'analyze-style-btn') {
+                const question = e.target.textContent;
+                
+                askedQuestions.add(question);
+                processMessage(question);
+                renderFaqButtons(); 
+            }
+        });
+        
+        // --- API Key Modal Logic ---
+        function showApiKeyModal() {
+            apiKeyModal.classList.remove('hidden');
+            setTimeout(() => {
+                apiKeyModal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+
+        function hideApiKeyModal() {
+             apiKeyModal.classList.add('opacity-0');
+             modalContent.classList.add('scale-95', 'opacity-0');
+             setTimeout(() => {
+                apiKeyModal.classList.add('hidden');
+             }, 300);
+        }
+
+        saveApiKeyBtn.addEventListener('click', () => {
+            const enteredKey = apiKeyInput.value.trim();
+            if (enteredKey) {
+                localStorage.setItem('geminiApiKey', enteredKey);
+                apiKey = enteredKey;
+                hideApiKeyModal();
+            } else {
+                alert('Please enter a valid API key.');
+            }
+        });
+
+        // Check for API key on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('geminiApiKey');
+            if (savedKey) {
+                apiKey = savedKey;
+            } else {
+                showApiKeyModal();
+            }
+            renderFaqButtons();
+        });
+
+    </script>
+</body>
+</html>
+
