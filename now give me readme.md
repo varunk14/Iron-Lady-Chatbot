@@ -4,7 +4,7 @@ This is an intelligent, conversational chatbot created for the Iron Lady leaders
 
 The chatbot features a sleek, modern UI and is powered by the Google Gemini API to handle a wide range of queries with intelligent, context-aware responses.
 
-Live Demo: Click here to try the chatbot\!   https://varunk14.github.io/Iron-Lady-Chatbot/chatbot.html
+Live Demo:https://varunk14.github.io/Iron-Lady-Chatbot/chatbot.html
 
 
 ## **✨ Key Features**
